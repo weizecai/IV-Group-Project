@@ -127,7 +127,7 @@ ui <- navbarPage("House Price in Melbourne", id="nav",
                                             
                                             
                               ),# absolutePanel ends
-                              conditionalPanel( condition = "input.search",
+                              conditionalPanel( condition = "input.search", #only shows when search clicked
                                                 absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                                               draggable = FALSE,  top = 60, left = "auto", right =50, bottom = "auto",
                                                               width = 600, height = 700,
@@ -247,7 +247,7 @@ server <- function(input, output, session) {
   observeEvent(input$reset_time, {
     updateTimeInput(session, "time_input", value = Sys.time())})
   
-  
+  #run API to find best way with some default value
   searchRoute <- eventReactive({input$search|input$alternatives}, {
     time=input$time_input
     if(input$origin == ""){
@@ -289,14 +289,13 @@ server <- function(input, output, session) {
     
     mp_get_segments(doc)
   })
-  
+  #default route output
   output$search_route <- renderLeaflet({
-    r <- searchRoute()
-    leaflet(r) %>%
+    leaflet() %>%
       addProviderTiles("CartoDB.DarkMatter")%>%
       setView(lat=-37.812175979147106,lng=144.96245084166554,zoom=10)
   })
-  
+  #search result
   observeEvent(input$search,{
     
     r <- searchRoute()
@@ -312,9 +311,9 @@ server <- function(input, output, session) {
     for(i in r[1:idx1,1:13]$duration_s){
       t=t-i
     }
-    
+    #Recommended departure time
     output$text=renderText(paste("Recommended departure time:",format(strptime(format(t, "%X"),"%H:%M:%S"),"%H:%M")))
-    
+    #route detail
     output$detail<-renderDataTable({
       dt <- DT::datatable(
         get_table(r[1:idx1,1:13]),
@@ -336,14 +335,14 @@ server <- function(input, output, session) {
     pal <- colorNumeric(c( "#CCFBFE","#E9706C"), 1:length(unique(r$travel_mode)))
     time=format(strptime(format(input$time_input, "%X"),"%H:%M:%S"),'%H')
     map <- leaflet(r[1:idx1,1:13])
-    
+    #if is day or night
     if (as.integer(time) >= 7 & as.integer(time) < 17 ){
       map <- map %>% addProviderTiles("CartoDB.Positron")
     }
     else{
       map <- map %>% addProviderTiles("CartoDB.DarkMatter")
     }
-    
+    #plot map with route
     output$search_route <- renderLeaflet({
       map %>% 
         addPolylines(
@@ -351,6 +350,7 @@ server <- function(input, output, session) {
           weight = 7, 
           layerId = ~instructions,
           color = ~pal(c(1:length(unique(travel_mode)))), popup = ~paste(instructions,duration_text))%>%
+      #strat and end point
         addCircleMarkers(color="#A7A157",lng = unlist(st_cast(r$geometry[idx1], "POINT"))[length(unlist(st_cast(r$geometry[idx1], "POINT")))-1],
                          lat = unlist(st_cast(r$geometry[idx1], "POINT"))[length(unlist(st_cast(r$geometry[idx1], "POINT")))],
                          popup ="Destination")%>%
@@ -360,7 +360,7 @@ server <- function(input, output, session) {
                          popup ="Start Point")
     })
   })
-  
+  #alternative path
   observeEvent(input$alternatives,{
     r <- searchRoute()
     v$instructions <- ""
@@ -395,7 +395,7 @@ server <- function(input, output, session) {
       
       dt
     })
-    
+    #color for route
     pal <- colorNumeric(c( "#CCFBFE","#E9706C"), 1:length(unique(r$travel_mode)))
     
     time=format(strptime(format(input$time_input, "%X"),"%H:%M:%S"),'%H')
@@ -431,7 +431,7 @@ server <- function(input, output, session) {
     click <- input$search_route_shape_click
     v$instructions <- click$id
   })
-  
+  #get data from API response data
   get_table<-function(data){
     df = data.frame(matrix(nrow = length(data$alternative_id), ncol = 4))
     colnames(df)=c("travel_mode","instructions","duration_time","distance")
