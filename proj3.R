@@ -275,7 +275,7 @@ server <- function(input, output, session) {
       transit=c("bus", "subway", "train", "tram")
     }
     
-    key="AIzaSyB84chXISSjUJ72z2s52_TnuyyW_Z_TbS4"
+    key=""
     doc = mp_directions(
       origin = origin,
       destination = dest,
